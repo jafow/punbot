@@ -33,16 +33,24 @@ rtm.on(RTM_EVENTS.MESSAGE, function onMessage (msg) {
       let whitePun = getRandomCategory(CATEGORYLIST.white)
       let greenPun = getRandomCategory(CATEGORYLIST.green)
       rtm.sendMessage(':zap: *Punderdome on Slack* :zap: \n\n ' + whitePun + '::' + greenPun, msg.channel)
-    } else if (msgArray[1] === '++') {
+    } else if (msgArray[1] === 'score') {
       // points for someone... check they are in the group
-      if (channelMembers.indexOf(stripBrackets(msgArray[2])) < 0) {
+      if (channelMembers.indexOf(stripBrackets(msgArray[3])) < 0) {
         // they aren't in the group
-        rtm.sendMessage('Hi <@' + msg.user + '>! I tried to add points to ' + msgArray[2] + ' but couldnt find them in our channel :-( \n Try again!', msg.channel)
+        rtm.sendMessage('Hi <@' + msg.user + '>! I tried to add points to ' + msgArray[3] + ' but couldnt find them in our channel :-( \n Try again!', msg.channel)
       } else {
-        rtm.sendMessage('Adding one point for ' + msgArray[2] + ' :fire:')
+        rtm.sendMessage(`Adding one point for ${msgArray[3].toUpperCase()} :fire:`, msg.channel)
       }
     }
   }
+})
+// TEMP FOR TESTING
+let DMChannelId = 'D83R2HSFJ'
+
+// write message from standard in to a (for now) hardcoded channel!?
+process.stdin.on('data', function (d) {
+  let data = d.toString().trim()
+  rtm.sendMessage(`:star: ${data} :star:`, DMChannelId)
 })
 
 rtm.start()
