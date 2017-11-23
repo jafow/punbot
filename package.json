@@ -13,12 +13,14 @@
   "author": "Jared Fowler <jared.a.fowler@gmail.com>",
   "license": "MIT",
   "dependencies": {
-    "@slack/client": "^3.14.2"
+    "@slack/client": "^3.14.2",
+    "subcommand": "^2.1.0"
   },
   "devDependencies": {
     "eslint": "^4.11.0",
     "eslint-config-standard": "^10.2.1",
     "eslint-plugin-promise": "^3.6.0",
-    "eslint-plugin-standard": "^3.0.1"
+    "eslint-plugin-standard": "^3.0.1",
+    "standard": "^10.0.3"
   }
 }
