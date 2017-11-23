@@ -1,20 +1,44 @@
 var RtmClient = require('@slack/client').RtmClient
 var CLIENT_EVENTS = require('@slack/client').CLIENT_EVENTS
 var RTM_EVENTS = require('@slack/client').RTM_EVENTS
-var keys = require('./key.json').SLACK_BOT_TOKEN
+var keys = require('./key.json')
 var token = keys.SLACK_BOT_TOKEN
-var CATEGORYLIST = require('./category-list.json')
 var groupName = keys.GROUP_NAME
+var CATEGORYLIST = require('./category-list.json')
 var rtm = new RtmClient(token)
+var subcommand = require('subcommand')
 
 var channel
 var channelMembers = []
+
+var commands = [
+  {
+    name: 'new',
+    options: [
+      {
+        name: 'pun'
+      }
+    ],
+    command: handleNew
+  },
+  {
+    name: 'score',
+    command: scorePoints
+  }
+]
+var match = subcommand(commands)
 // The client will emit an RTM.AUTHENTICATED event on successful connection, with the `rtm.start` payload if you want to cache it
 rtm.on(CLIENT_EVENTS.RTM.AUTHENTICATED, function (rtmStartData) {
-  for (let c of rtmStartData.groups) {
-    if (c.name.toLowerCase() === groupName.toLowerCase()) {
+  // for (let c of rtmStartData.groups) {
+  //   if (c.name.toLowerCase() === groupName.toLowerCase()) {
+  //     channel = c.id
+  //     channelMembers = c.members.map(m => m.toLowerCase())
+  //   }
+  // }
+  for (let c of rtmStartData.users) {
+    if (c.name === 'jared.fowler') {
       channel = c.id
-      channelMembers = c.members.map(m => m.toLowerCase())
+      channelMembers.push(c.id.toLowerCase())
     }
   }
   console.log(`Logged in as ${rtmStartData.self.name} of team ${rtmStartData.team.name} on channel ${channel}`)
@@ -67,5 +91,31 @@ function getRandomCategory (list) {
 
 function stripBrackets (userId) {
   // <@ABC123> => ABC123
-  return userId.replace(/[<@>]/, '')
+  return userId.replace(/[<@>]+/g, '')
+}
+
+function handleNew (args) {
+  console.log('args : ', args)
+}
+
+function scorePoints (args) {
+  console.dir(`args: ${args}`)
+  var [points, ...rest] = args._
+
+  setData(pointValue(points, rest))
+  return rtm.sendMessage(`Adding one point for ${rest[1].toUpperCase()} :fire:`, DMChannelId)
+}
+
+function setData (points) {
+
+}
+
+function pointValue (points, args) {
+  var _points = parseInt(points, 10)
+  if (isNaN(_points)) {
+    // filter through the args for any number like thing
+    return args.filter(a => typeof parseInt(a, 10) === 'number')
+  } else {
+    return _points
+  }
 }
