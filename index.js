@@ -67,5 +67,5 @@ function getRandomCategory (list) {
 
 function stripBrackets (userId) {
   // <@ABC123> => ABC123
-  return userId.replace('<@', '').replace('>', '')
+  return userId.replace(/[<@>]/, '')
 }
