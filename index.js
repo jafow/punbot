@@ -19,58 +19,74 @@ var channelMembers = []
 
 var commands = [
   {
-    name: 'new',
-    options: [
-      {
-        name: 'pun'
-      }
-    ],
+    name: 'NEW',
     command: handleNew
   },
   {
-    name: 'score',
+    name: 'SCORE',
     command: scorePoints
   },
   {
-    name: 'get',
+    name: 'GET',
     command: getScore
+  },
+  {
+    name: 'HELP',
+    command: function (args) {
+      var [a, cat, msg] = args._
+      rtm.sendMessage(`\r Punbot knows these 3 commands: 
+           \`new pun: rolls a new category\`
+           score <number> <@slack username>: adds <number> points to <@slack user>
+              for example: @punbot score 10 @jared.fowler
+           get <@slack username>: gets <@slack username's> total score
+          `, msg.channel)
+    }
   }
 ]
 var match = subcommand(commands)
-// The client will emit an RTM.AUTHENTICATED event on successful connection, with the `rtm.start` payload if you want to cache it
+var BOT_ID = ''
 rtm.on(CLIENT_EVENTS.RTM.AUTHENTICATED, function (rtmStartData) {
   // for (let c of rtmStartData.groups) {
-  //   if (c.name.toLowerCase() === groupName.toLowerCase()) {
+  //   if (c.name.toUpperCase() === groupName.toUpperCase()) {
   //     channel = c.id
-  //     channelMembers = c.members.map(m => m.toLowerCase())
+  //     channelMembers = c.members.map(m => m.toUpperCase())
   //   }
   // }
   for (let c of rtmStartData.users) {
     if (c.name === 'jared.fowler') {
       channel = c.id
-      channelMembers.push(c.id.toLowerCase())
+      channelMembers.push(c.id.toUpperCase())
+    }
+    if (c.name === 'punbot') {
+      BOT_ID = c.id
     }
   }
+
   console.log(`Logged in as ${rtmStartData.self.name} of team ${rtmStartData.team.name} on channel ${channel}`)
 })
 
 rtm.on(CLIENT_EVENTS.RTM.RTM_CONNECTION_OPENED, function () {
   // rtm.sendMessage('HEYYY', channel)
 })
-
 rtm.on(RTM_EVENTS.MESSAGE, function onMessage (msg) {
   if (isToPunbot(msg.text)) {
-    let msgArray = msg.text.split(' ').map(xs => xs.toLowerCase())
+    let msgArray = msg.text.split(' ').map(xs => xs.toUpperCase())
+    let punbotIndex = msgArray.indexOf(`<@${BOT_ID}>`)
     // check commands
-    if (msgArray[1] === 'new') {
+    // if (msgArray[punbotIndex + 1] === 'NEW') {
       // roll another pun
-      let pun = { noun: getRandomCategory(CATEGORYLIST.white), verb: getRandomCategory(CATEGORYLIST.green) }
-      rtm.sendMessage(`:zap: *Punderdome on Slack* :zap: \r\r\t ${pun.noun} :: ${pun.verb}`, msg.channel)
-    } else if (msgArray[1] === 'score') {
-      match(msgArray.slice(1))
-    } else if (msgArray[1] === 'get') {
-      match(msgArray.slice(1))
-    }
+      let category = {
+        noun: getRandomCategory(CATEGORYLIST.white),
+        verb: getRandomCategory(CATEGORYLIST.green)
+      }
+
+      // rtm.sendMessage(`\r:zap: *It's time for a pun!* :zap: \r\r\t ${category.noun} :: ${category.verb}`, msg.channel)
+      match(msgArray.slice(1).concat(category, msg))
+    // } else if (msgArray[punbotIndex + 1] === 'SCORE') {
+      // match(msgArray.slice(1))
+    // } else if (msgArray[punbotIndex + 1] === 'GET') {
+      // match(msgArray.slice(1))
+    // }
   }
 })
 // TEMP FOR TESTING
@@ -85,7 +101,8 @@ process.stdin.on('data', function (d) {
 rtm.start()
 
 function isToPunbot (msgText) {
-  return /U85AZNDSS/.test(msgText)
+  var re = new RegExp(BOT_ID)
+  return re.test(msgText)
 }
 
 function getRandomCategory (list) {
@@ -100,7 +117,8 @@ function stripBrackets (userId) {
 }
 
 function handleNew (args) {
-  console.log('args : ', args)
+  var [arr, category, msg] = args._
+  rtm.sendMessage(`\r:zap: *It's time for a pun!* :zap: \r\r\t ${category.noun} :: ${category.verb}`, msg.channel)
 }
 
 function scorePoints (args) {
