@@ -38,12 +38,13 @@ var commands = [
   {
     name: 'HELP',
     command: function (args) {
-      var [a, cat, msg] = args._
+      var [cat, msg] = args._
       rtm.sendMessage(`\r Punbot knows these 3 commands: 
-           \`new pun: rolls a new category\`
-           score <number> <@slack username>: adds <number> points to <@slack user>
-              for example: @punbot score 10 @jared.fowler
-           get <@slack username>: gets <@slack username's> total score
+           \`new pun: rolls a new category\`\r
+           \`add <number> <@slack username>: adds <number> points to <@slack user>\`\r
+           \t\t for example: \`@punbot add 10 @jared.fowler\`\r
+           \`points <@slack username>: gets <@slack username's> total score\`\r
+           \t\t for example: \`@punbot points @jared.fowler\` \r
           `, msg.channel)
     }
   }
