@@ -52,7 +52,7 @@ var commands = [
 var match = subcommand(commands)
 var BOT_ID = ''
 rtm.on(CLIENT_EVENTS.RTM.AUTHENTICATED, function (rtmStartData) {
-  if (!PROD) {
+  if (PROD) {
     for (let c of rtmStartData.groups) {
       if (c.name.toUpperCase() === groupName.toUpperCase()) {
         channel = c.id
