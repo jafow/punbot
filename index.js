@@ -166,7 +166,7 @@ function getScore (args) {
     rtm.sendMessage(`hey uh @jared.fowler? I got an error getting these points for ${user}...wanna take a :eyes:?`, DMChannelId)
     return rtm.sendMessage('I had an error so here\'s a classic: \r Q: what is brown and sticky? \r....\rA: A stick! \r', msg.channel)
   }
-  var getUserScore = scoreFor(user)
+  var getUserScore = scoreFor(user, msg)
   db.get(user, getUserScore)
 }
 
@@ -182,13 +182,13 @@ function getTotalScore (args) {
   })
 }
 
-function scoreFor (userId) {
+function scoreFor (userId, msg) {
   return function getUserScore (err, val) {
     if (err) {
       console.error(new Error(err))
       return rtm.sendMessage(`hey uh @jared.fowler? I got an error (${err}) getting these points...wanna take a :eyes:?`, DMChannelId)
     }
-    return rtm.sendMessage(`Score for ${userId.toUpperCase()} is ${val}`, DMChannelId)
+    return rtm.sendMessage(`Score for ${userId.toUpperCase()} is ${val}`, msg.channel || DMChannelId)
   }
 }
 
