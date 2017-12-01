@@ -6,6 +6,7 @@ var keys = require('./key.json')
 var token = keys.SLACK_BOT_TOKEN
 var groupName = keys.GROUP_NAME
 var CATEGORYLIST = require('./category-list.json')
+var PROD = process.env.NODE_ENV === 'PROD'
 
 var rtm = new RtmClient(token)
 
@@ -23,12 +24,16 @@ var commands = [
     command: handleNew
   },
   {
-    name: 'SCORE',
-    command: scorePoints
+    name: 'ADD',
+    command: addPoints
   },
   {
-    name: 'GET',
+    name: 'POINTS',
     command: getScore
+  },
+  {
+    name: 'LEADERBOARD',
+    command: getTotalScore
   },
   {
     name: 'HELP',
@@ -46,14 +51,16 @@ var commands = [
 var match = subcommand(commands)
 var BOT_ID = ''
 rtm.on(CLIENT_EVENTS.RTM.AUTHENTICATED, function (rtmStartData) {
-  // for (let c of rtmStartData.groups) {
-  //   if (c.name.toUpperCase() === groupName.toUpperCase()) {
-  //     channel = c.id
-  //     channelMembers = c.members.map(m => m.toUpperCase())
-  //   }
-  // }
+  if (!PROD) {
+    for (let c of rtmStartData.groups) {
+      if (c.name.toUpperCase() === groupName.toUpperCase()) {
+        channel = c.id
+        channelMembers = c.members.map(m => m.toUpperCase())
+      }
+    }
+  }
   for (let c of rtmStartData.users) {
-    if (c.name === 'jared.fowler') {
+    if (!PROD && c.name === 'jared.fowler') {
       channel = c.id
       channelMembers.push(c.id.toUpperCase())
     }
@@ -61,7 +68,6 @@ rtm.on(CLIENT_EVENTS.RTM.AUTHENTICATED, function (rtmStartData) {
       BOT_ID = c.id
     }
   }
-
   console.log(`Logged in as ${rtmStartData.self.name} of team ${rtmStartData.team.name} on channel ${channel}`)
 })
 
@@ -72,21 +78,15 @@ rtm.on(RTM_EVENTS.MESSAGE, function onMessage (msg) {
   if (isToPunbot(msg.text)) {
     let msgArray = msg.text.split(' ').map(xs => xs.toUpperCase())
     let punbotIndex = msgArray.indexOf(`<@${BOT_ID}>`)
-    // check commands
-    // if (msgArray[punbotIndex + 1] === 'NEW') {
-      // roll another pun
-      let category = {
-        noun: getRandomCategory(CATEGORYLIST.white),
-        verb: getRandomCategory(CATEGORYLIST.green)
-      }
+    let category = {
+      noun: getRandomCategory(CATEGORYLIST.white),
+      verb: getRandomCategory(CATEGORYLIST.green)
+    }
 
-      // rtm.sendMessage(`\r:zap: *It's time for a pun!* :zap: \r\r\t ${category.noun} :: ${category.verb}`, msg.channel)
-      match(msgArray.slice(1).concat(category, msg))
-    // } else if (msgArray[punbotIndex + 1] === 'SCORE') {
-      // match(msgArray.slice(1))
-    // } else if (msgArray[punbotIndex + 1] === 'GET') {
-      // match(msgArray.slice(1))
-    // }
+    var matched = match(msgArray.slice(punbotIndex + 1).concat(category, msg))
+    if (!matched) {
+      return rtm.sendMessage('... whuh? sorry didn\'t get that last part', msg.channel)
+    }
   }
 })
 // TEMP FOR TESTING
@@ -118,36 +118,34 @@ function stripBrackets (userId) {
 
 function handleNew (args) {
   var [arr, category, msg] = args._
-  rtm.sendMessage(`\r:zap: *It's time for a pun!* :zap: \r\r\t ${category.noun} :: ${category.verb}`, msg.channel)
+  if (arr[0].toUpperCase() === 'PUN') {
+    // TODO: add check for new 'GAME' to reset game
+    return rtm.sendMessage(`\r:zap: *It's time for a pun!* :zap: \r\r\t ${category.noun} :: ${category.verb}`, msg.channel)
+  }
+  return rtm.sendMessage(`\r:zap: *It's time for a pun!* :zap: \r\r\t ${category.noun} :: ${category.verb}`, msg.channel)
 }
 
-function scorePoints (args) {
-  var [points, ...rest] = args._
-  var _pointVal = pointValue(points)
+function addPoints (args) {
+  var [points, userId, ...rest] = args._
+  var msg = !rest.length ? userId : rest[1]
+  var _pointVal = parseInt(points, 10)
 
-  if (!points || !rest.length) {
-    return rtm.sendMessage(`hey uh @jared.fowler? I got an error saving these points...wanna take a :eyes:?`, DMChannelId)
+  if (isNaN(_pointVal) || typeof userId === 'object') {
+    // didn't provide a user to add points to
+    rtm.sendMessage('hey uh @jared.fowler? I got an error saving these points...wanna take a :eyes:?: ' + JSON.stringify(args._), DMChannelId)
+    return rtm.sendMessage('I had an error so here\'s a joke instead: \r Q: what is a punbot\'s favorite music? \r....\rA: punkrock. :peace_symbol:', msg.channel)
   }
 
-  db.get(rest[0], function (err, val) {
+  db.get(userId, function (err, val) {
     if (err) {
       console.error(new Error(err))
-      rtm.sendMessage(`hey uh @jared.fowler? I got an error saving these points: ${err}`, DMChannelId)
+      rtm.sendMessage(` :-( I got an error saving these points: ${JSON.stringify(err)}`, DMChannelId)
     }
 
     var newVal = val ? parseInt(val, 10) + _pointVal : _pointVal
-    db.put(rest[0], newVal, handlePutError)
+    db.put(userId, newVal, handlePutError)
   })
-  return rtm.sendMessage(`Adding ${pointMessage(_pointVal)} for ${rest[0].toUpperCase()} :fire:`, DMChannelId)
-}
-
-function pointValue (points, args) {
-  var _points = parseInt(points, 10)
-  if (isNaN(_points)) {
-    // filter through the args for any number like thing and return 1st one
-    return args.filter(a => typeof parseInt(a, 10) === 'number')[0] || 0
-  }
-  return _points
+  return rtm.sendMessage(`Adding ${pointMessage(_pointVal)} for ${userId.toUpperCase()} :fire:`, msg.channel)
 }
 
 function pointMessage (pt) {
@@ -157,13 +155,30 @@ function pointMessage (pt) {
 
 function getScore (args) {
   var [user, ...rest] = args._
+  var msg = rest.pop()
+
+  if (!user) {
+    return rtm.sendMessage(`hey uh @jared.fowler? I got an error saving these points: no userid provided to getScore`, DMChannelId)
+  }
   let userId = stripBrackets(user)
   if (channelMembers.indexOf(userId) < 0) {
-    console.log('user: ', userId)
-    return rtm.sendMessage(`hey uh @jared.fowler? I got an error getting these points for ${user}...wanna take a :eyes:?`, DMChannelId)
+    rtm.sendMessage(`hey uh @jared.fowler? I got an error getting these points for ${user}...wanna take a :eyes:?`, DMChannelId)
+    return rtm.sendMessage('I had an error so here\'s a classic: \r Q: what is brown and sticky? \r....\rA: A stick! \r', msg.channel)
   }
   var getUserScore = scoreFor(user)
   db.get(user, getUserScore)
+}
+
+function getTotalScore (args) {
+  var [category, msg] = args._
+  var allUsers = channelMembers.map(m => `<@${m}>`)
+
+  db.get(allUsers, function (err, vals) {
+    if (err) {
+      console.error(err)
+    }
+    // TODO: print these out nicely
+  })
 }
 
 function scoreFor (userId) {
