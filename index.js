@@ -174,11 +174,16 @@ function getTotalScore (args) {
   var [category, msg] = args._
   var allUsers = channelMembers.map(m => `<@${m}>`)
 
-  db.get(allUsers, function (err, vals) {
-    if (err) {
-      console.error(err)
-    }
-    // TODO: print these out nicely
+  rtm.sendMessage(`:star: Score Board :star:\r`, msg.channel || DMChannelId)
+  allUsers.forEach(user => {
+    db.get(user, function (err, vals) {
+      if (err) {
+        console.error(err)
+      }
+      if (vals) {
+        rtm.sendMessage(`user ${user} has ${vals.toString()} points\n`, msg.channel || DMChannelId)
+      }
+    })
   })
 }
 
