@@ -28,6 +28,10 @@ var commands = [
     command: addPoints
   },
   {
+    name: 'SUBTRACT',
+    command: subtractPoints
+  },
+  {
     name: 'POINTS',
     command: getScore
   },
@@ -39,7 +43,7 @@ var commands = [
     name: 'HELP',
     command: function (args) {
       var [cat, msg] = args._
-      rtm.sendMessage(`\r Punbot knows these 3 commands: 
+      rtm.sendMessage(`\r Punbot knows these 3 commands:
            \`new pun: rolls a new category\`\r
            \`add <number> <@slack username>: adds <number> points to <@slack user>\`\r
            \t\t for example: \`@punbot add 10 @jared.fowler\`\r
@@ -119,11 +123,15 @@ function stripBrackets (userId) {
 
 function handleNew (args) {
   var [arr, category, msg] = args._
-  if (arr[0].toUpperCase() === 'PUN') {
+  if (arr.toUpperCase() === 'PUN') {
     // TODO: add check for new 'GAME' to reset game
     return rtm.sendMessage(`\r:zap: *It's time for a pun!* :zap: \r\r\t ${category.noun} :: ${category.verb}`, msg.channel)
+  } else if (arr.toUpperCase() === 'GAME') {
+    setupNewGame(msg)
+    return rtm.sendMessage(`\r:zap: *It's time for a pun!* :zap: \r\r\t ${category.noun} :: ${category.verb}`, msg.channel)
+  } else {
+    return rtm.sendMessage(`\r:zap: *It's time for a pun!* :zap: \r\r\t ${category.noun} :: ${category.verb}`, msg.channel)
   }
-  return rtm.sendMessage(`\r:zap: *It's time for a pun!* :zap: \r\r\t ${category.noun} :: ${category.verb}`, msg.channel)
 }
 
 function addPoints (args) {
@@ -202,4 +210,8 @@ function handlePutError (err) {
     console.error(new Error(err))
     return rtm.sendMessage(`hey uh @jared.fowler? I got an error saving these points: ${err}`, DMChannelId)
   }
+}
+
+function setupNewGame (arr) {
+
 }
