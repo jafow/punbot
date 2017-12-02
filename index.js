@@ -28,6 +28,10 @@ var commands = [
     command: addPoints
   },
   {
+    name: 'SUBTRACT',
+    command: subtractPoints
+  },
+  {
     name: 'POINTS',
     command: getScore
   },
@@ -39,7 +43,7 @@ var commands = [
     name: 'HELP',
     command: function (args) {
       var [cat, msg] = args._
-      rtm.sendMessage(`\r Punbot knows these 3 commands: 
+      rtm.sendMessage(`\r Punbot knows these 3 commands:
            \`new pun: rolls a new category\`\r
            \`add <number> <@slack username>: adds <number> points to <@slack user>\`\r
            \t\t for example: \`@punbot add 10 @jared.fowler\`\r
@@ -119,34 +123,85 @@ function stripBrackets (userId) {
 
 function handleNew (args) {
   var [arr, category, msg] = args._
-  if (arr[0].toUpperCase() === 'PUN') {
+  if (arr.toUpperCase() === 'PUN') {
     // TODO: add check for new 'GAME' to reset game
     return rtm.sendMessage(`\r:zap: *It's time for a pun!* :zap: \r\r\t ${category.noun} :: ${category.verb}`, msg.channel)
+  } else if (arr.toUpperCase() === 'GAME') {
+    rtm.sendMessage(`\r:zap: *Ohh buddy it's PUN time!* :zap: \r\r`, msg.channel)
+    return setupNewGame(msg)
+  } else {
+    return rtm.sendMessage(`\r:zap: *It's time for a pun!* :zap: \r\r\t ${category.noun} :: ${category.verb}`, msg.channel)
   }
-  return rtm.sendMessage(`\r:zap: *It's time for a pun!* :zap: \r\r\t ${category.noun} :: ${category.verb}`, msg.channel)
 }
 
 function addPoints (args) {
   var [points, userId, ...rest] = args._
   var msg = !rest.length ? userId : rest[1]
-  var _pointVal = parseInt(points, 10)
+  var pointVal = parseInt(points, 10)
 
-  if (isNaN(_pointVal) || typeof userId === 'object') {
+  if (isNaN(pointVal) || typeof userId === 'object') {
     // didn't provide a user to add points to
-    rtm.sendMessage('hey uh @jared.fowler? I got an error saving these points...wanna take a :eyes:?: ' + JSON.stringify(args._), DMChannelId)
+    rtm.sendMessage('hey uh @jared.fowler? I got an error adding these points...wanna take a :eyes:?: ' + JSON.stringify(args._), DMChannelId)
+    return rtm.sendMessage('I had an error so here\'s a joke instead: \r Did you know I was named after Abraham Lincoln? \r yup, he was born like a long time ago and his parents called him Abe or whatever and I was just made like a few days ago. Get it? After? \r:fire: :peace_symbol::door:', msg.channel)
+  }
+
+  updatePointsFor(userId, pointVal, addPointsFn)
+  return rtm.sendMessage(`Adding ${pointMessage(pointVal)} for ${userId.toUpperCase()} :fire:`, msg.channel)
+}
+
+function subtractPoints (args) {
+  var [points, userId, ...rest] = args._
+  var msg = !rest.length ? userId : rest[1]
+  var pointVal = parseInt(points, 10)
+
+  if (isNaN(pointVal) || typeof userId === 'object') {
+    // didn't provide a user to add points to
+    rtm.sendMessage('hey uh @jared.fowler? I got an error subtracting these points...wanna take a :eyes:?: ' + JSON.stringify(args._), DMChannelId)
     return rtm.sendMessage('I had an error so here\'s a joke instead: \r Q: what is a punbot\'s favorite music? \r....\rA: punkrock. :peace_symbol:', msg.channel)
   }
 
+  updatePointsFor(userId, pointVal, subtractPointsFn)
+
+  return rtm.sendMessage(`:frowning: Subtracting ${pointMessage(pointVal)} for ${userId.toUpperCase()} :frowning::`, msg.channel)
+}
+
+/** updatePointsFor
+ * @param {string} userId user id to update points for
+ * @param {number} newPoints the value of new points to update by
+ * @param {function} pointsFn callback for operating on the points to be put
+ */
+function updatePointsFor (userId, newPoints, pointsFn) {
   db.get(userId, function (err, val) {
     if (err) {
       console.error(new Error(err))
       rtm.sendMessage(` :-( I got an error saving these points: ${JSON.stringify(err)}`, DMChannelId)
     }
 
-    var newVal = val ? parseInt(val, 10) + _pointVal : _pointVal
+    var newVal = pointsFn(val, newPoints)
     db.put(userId, newVal, handlePutError)
   })
-  return rtm.sendMessage(`Adding ${pointMessage(_pointVal)} for ${userId.toUpperCase()} :fire:`, msg.channel)
+}
+/** addPointsFn
+ * @param {string} currentVal current user points value (if any) that's returned from db.get
+ * @param {number} newVal new value to update score by
+ * @return {number} the sum of current (if exists) and new value to be PUT to db
+ */
+function addPointsFn (currentVal, newVal) {
+  if (!currentVal) {
+    return newVal
+  }
+  return parseInt(currentVal, 10) + newVal
+}
+/** subtractPointsFn
+ * @param {string} currentVal current user points value (if any) that's returned from db.get
+ * @param {number} newVal new value to update score by
+ * @return {number} the difference of current (if exists) and new value to be PUT to db
+ */
+function subtractPointsFn (currentVal, newVal) {
+  if (!currentVal) {
+    return newVal
+  }
+  return parseInt(currentVal, 10) + -newVal
 }
 
 function pointMessage (pt) {
@@ -202,4 +257,15 @@ function handlePutError (err) {
     console.error(new Error(err))
     return rtm.sendMessage(`hey uh @jared.fowler? I got an error saving these points: ${err}`, DMChannelId)
   }
+}
+
+function setupNewGame (msg) {
+  var opts = channelMembers.map(member => ({'type': 'put', 'key': `<@member>`, value: 0}))
+  db.batch(opts, function (err) {
+    if (err) {
+      console.error(new Error(err))
+      return rtm.sendMessage(`hey uh @jared.fowler? I got an error (${err}) making a new game...wanna take a :eyes:? ${JSON.stringify(err)}`, DMChannelId)
+    }
+    return rtm.sendMessage(`.... creating ... new .... game \`beep boop\``, msg.channel || DMChannelId)
+  })
 }
