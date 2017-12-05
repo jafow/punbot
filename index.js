@@ -11,6 +11,7 @@ var PROD = process.env.NODE_ENV === 'PROD'
 var rtm = new RtmClient(token)
 
 var subcommand = require('subcommand')
+var concat = require('concat-stream')
 var levelup = require('levelup')
 var leveldown = require('leveldown')
 
@@ -47,6 +48,8 @@ var commands = [
            \`new pun: rolls a new category\`\r
            \`add <number> <@slack username>: adds <number> points to <@slack user>\`\r
            \t\t for example: \`@punbot add 10 @jared.fowler\`\r
+           \`subtract <number> <@slack username>: subtracts <number> points from <@slack user>\`\r
+           \t\t for example: \`@punbot subtract 10 @jared.fowler\`\r
            \`points <@slack username>: gets <@slack username's> total score\`\r
            \t\t for example: \`@punbot points @jared.fowler\` \r
           `, msg.channel)
@@ -54,7 +57,9 @@ var commands = [
   }
 ]
 var match = subcommand(commands)
+var concatStream = concat({encoding: 'object'}, sortScores)
 var BOT_ID = ''
+
 rtm.on(CLIENT_EVENTS.RTM.AUTHENTICATED, function (rtmStartData) {
   if (PROD) {
     for (let c of rtmStartData.groups) {
@@ -227,19 +232,15 @@ function getScore (args) {
 
 function getTotalScore (args) {
   var [category, msg] = args._
-  var allUsers = channelMembers.map(m => `<@${m}>`)
 
   rtm.sendMessage(`:star: Score Board :star:\r`, msg.channel || DMChannelId)
-  allUsers.forEach(user => {
-    db.get(user, function (err, vals) {
-      if (err) {
-        console.error(err)
-      }
-      if (vals) {
-        rtm.sendMessage(`user ${user} has ${vals.toString()} points\n`, msg.channel || DMChannelId)
-      }
+
+  db.createReadStream()
+    .on('error', handleReadError)
+    .on('data', concatStream)
+    .on('end', () => {
+      return rtm.sendMessage(`:star: :star:\r`, msg.channel || DMChannelId)
     })
-  })
 }
 
 function scoreFor (userId, msg) {
@@ -259,6 +260,13 @@ function handlePutError (err) {
   }
 }
 
+function handleReadError (err) {
+  if (err) {
+    console.error(new Error(err))
+    return rtm.sendMessage(`hey uh @jared.fowler? I got an error reading all user points: ${err}`, DMChannelId)
+  }
+}
+
 function setupNewGame (msg) {
   var opts = channelMembers.map(member => ({'type': 'put', 'key': `<@member>`, value: 0}))
   db.batch(opts, function (err) {
@@ -268,4 +276,30 @@ function setupNewGame (msg) {
     }
     return rtm.sendMessage(`.... creating ... new .... game \`beep boop\``, msg.channel || DMChannelId)
   })
+}
+
+function sortScores (data) {
+  var list = obToList(data)
+  var sorted = list.sort((a, b) => a[1] < b[1])
+
+  var scoreBoard = sorted.reduce((curr, next) => {
+    var m = `---------`
+    m += `${next[0]} ::: ${next[1]}`
+    m += `------------\r`
+    return m
+  }, ``)
+
+  rtm.sendMessage(scoreBoard, channel || DMChannelId)
+}
+
+function obToList (ob) {
+  var res = []
+
+  for (let k in ob) {
+    if (ob.hasOwnProperty(k)) {
+      res.push([k, ob[k]])
+    }
+  }
+
+  return res
 }
