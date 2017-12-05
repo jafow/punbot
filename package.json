@@ -16,6 +16,7 @@
   "license": "MIT",
   "dependencies": {
     "@slack/client": "^3.14.2",
+    "concat-stream": "^1.6.0",
     "leveldown": "^2.0.1",
     "levelup": "^2.0.1",
     "subcommand": "^2.1.0"
