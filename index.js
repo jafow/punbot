@@ -57,7 +57,7 @@ var commands = [
   }
 ]
 var match = subcommand(commands)
-var concatStream = concat({encoding: 'object'}, sortScores)
+var concatStream = concat(sortScores)
 var BOT_ID = ''
 
 rtm.on(CLIENT_EVENTS.RTM.AUTHENTICATED, function (rtmStartData) {
@@ -237,10 +237,7 @@ function getTotalScore (args) {
 
   db.createReadStream()
     .on('error', handleReadError)
-    .on('data', concatStream)
-    .on('end', () => {
-      return rtm.sendMessage(`:star: :star:\r`, msg.channel || DMChannelId)
-    })
+    .pipe(concatStream)
 }
 
 function scoreFor (userId, msg) {
@@ -279,14 +276,16 @@ function setupNewGame (msg) {
 }
 
 function sortScores (data) {
-  var list = obToList(data)
-  var sorted = list.sort((a, b) => a[1] < b[1])
+  var list = data.map((rec) => {
+    let {key, value} = rec
+    return { key: key.toString(), value: parseInt(value, 10) }
+  })
 
-  var scoreBoard = sorted.reduce((curr, next) => {
-    var m = `---------`
-    m += `${next[0]} ::: ${next[1]}`
-    m += `------------\r`
-    return m
+  var sorted = list.sort((a, b) => a.value < b.value)
+
+  var scoreBoard = sorted.reduce((curr, next, idx) => {
+    curr += `--------\r${idx + 1}: ${next.key}\t\t${next.value}\r`
+    return curr
   }, ``)
 
   rtm.sendMessage(scoreBoard, channel || DMChannelId)
