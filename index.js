@@ -53,14 +53,24 @@ var commands = [
     name: 'HELP',
     command: function (args) {
       var [cat, msg] = args._
-      rtm.sendMessage(`\r Punbot knows these 3 commands:
-           \`new pun: rolls a new category\`\r
-           \`add <number> <@slack username>: adds <number> points to <@slack user>\`\r
-           \t\t for example: \`@punbot add 10 @jared.fowler\`\r
-           \`subtract <number> <@slack username>: subtracts <number> points from <@slack user>\`\r
-           \t\t for example: \`@punbot subtract 10 @jared.fowler\`\r
-           \`points <@slack username>: gets <@slack username's> total score\`\r
-           \t\t for example: \`@punbot points @jared.fowler\` \r
+      rtm.sendMessage(`\r Punbot knows these commands:
+           \`new pun:\`\t rolls a new category\r\r
+          ------
+           \`add <number> <@slack username>\`:\tadds <number> points to <@slack user>\r\r
+           for example: \`@punbot add 10 @jared.fowler\`\r\r
+          -------
+           \`subtract <number> <@slack username>\`:\tsubtracts <number> points from <@slack user>\r
+           for example: \`@punbot subtract 10 @jared.fowler\`\r\r
+          ------
+           \`points <@slack username>\`: \tgets <@slack username's> total score\r
+           for example: \`@punbot points @jared.fowler\` \r\r
+          ------
+           \`shuffle \`: \tcreates a deck of cards and shuffles them\r
+           for example: \`@punbot shuffle\` \r\r
+          ------
+           \`deal\`: \tdeals a card from the deck\r
+           for example: \`@punbot deal\` \r\r
+          ------
           `, msg.channel)
     }
   }
