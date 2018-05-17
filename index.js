@@ -41,6 +41,14 @@ var commands = [
     command: getTotalScore
   },
   {
+    name: 'SHUFFLE',
+    command: newDeck
+  },
+  {
+    name: 'DEAL',
+    command: dealCard
+  },
+  {
     name: 'HELP',
     command: function (args) {
       var [cat, msg] = args._
@@ -59,6 +67,9 @@ var commands = [
 var match = subcommand(commands)
 var concatStream = concat(sortScores)
 var BOT_ID = ''
+
+// card dealing
+var DECK = []
 
 rtm.on(CLIENT_EVENTS.RTM.AUTHENTICATED, function (rtmStartData) {
   if (PROD) {
@@ -301,4 +312,26 @@ function obToList (ob) {
   }
 
   return res
+}
+
+function newDeck () {
+  var suits = '♡♢♠♣'
+  var counts = '23456789TJQKA'
+
+  DECK = []
+
+  for (let i = 0; i < counts.length; i++) {
+    for (let j = 0; j < suits.length; j++) {
+      DECK.push(counts[i] + suits[j])
+    }
+  }
+
+  rtm.sendMessage('New Deck Created...beep boop\n', channel || DMChannelId)
+}
+
+function dealCard () {
+  if (DECK.length < 1 || !DECK) {
+    rtm.sendMessage(`hey uh @jared.fowler? I got an error getting a new card from the DECK... take a :eyes:?`, DMChannelId)
+    return rtm.sendMessage('I had an error drawing a card so here\'s a nice joke: \r Q: something something meme...\r....\rA: A millenial! \r', channel)
+  }
 }
