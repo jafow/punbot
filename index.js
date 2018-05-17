@@ -327,12 +327,17 @@ function newDeck () {
     }
   }
 
+  DECK = shuffle(DECK)
+
   rtm.sendMessage('New Deck Created...beep boop\n', channel || DMChannelId)
 }
 
 function dealCard () {
   if (DECK.length < 1 || !DECK) {
     rtm.sendMessage(`hey uh @jared.fowler? I got an error getting a new card from the DECK... take a :eyes:?`, DMChannelId)
-    return rtm.sendMessage('I had an error drawing a card so here\'s a nice joke: \r Q: something something meme...\r....\rA: A millenial! \r', channel)
+    return rtm.sendMessage('I had an error drawing a card; the game maybe is over? Try the SHUFFLE command. Here\'s a joke for your time: \r Q: something something meme...\r....\rA: A millenial! \r', channel)
   }
+  var card = DECK.shift() || 'JOKER!!!'
+
+  rtm.sendMessage(`You draw a ${card}\n`, channel)
 }
