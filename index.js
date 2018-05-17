@@ -14,6 +14,7 @@ var subcommand = require('subcommand')
 var concat = require('concat-stream')
 var levelup = require('levelup')
 var leveldown = require('leveldown')
+var shuffle = require('array-shuffle')
 
 var db = levelup(leveldown('./mydb'))
 var channel
