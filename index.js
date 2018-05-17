@@ -107,6 +107,9 @@ rtm.on(CLIENT_EVENTS.RTM.RTM_CONNECTION_OPENED, function () {
   // rtm.sendMessage('HEYYY', channel)
 })
 rtm.on(RTM_EVENTS.MESSAGE, function onMessage (msg) {
+  if (msg.type === 'error') {
+    return rtm.sendMessage('sorry there was an error: ', msg.error.msg, msg.channel)
+  }
   if (isToPunbot(msg.text)) {
     let msgArray = msg.text.split(' ').map(xs => xs.toUpperCase())
     let punbotIndex = msgArray.indexOf(`<@${BOT_ID}>`)
@@ -121,6 +124,7 @@ rtm.on(RTM_EVENTS.MESSAGE, function onMessage (msg) {
     }
   }
 })
+
 // TEMP FOR TESTING
 let DMChannelId = 'D83R2HSFJ'
 
@@ -130,6 +134,7 @@ process.stdin.on('data', function (d) {
   rtm.sendMessage(`:star: ${data} :star:`, DMChannelId)
 })
 
+// start it up
 rtm.start()
 
 function isToPunbot (msgText) {
@@ -313,19 +318,9 @@ function sortScores (data) {
   rtm.sendMessage(scoreBoard, channel || DMChannelId)
 }
 
-function obToList (ob) {
-  var res = []
+function newDeck (args) {
+  var [_, msg] = args._
 
-  for (let k in ob) {
-    if (ob.hasOwnProperty(k)) {
-      res.push([k, ob[k]])
-    }
-  }
-
-  return res
-}
-
-function newDeck () {
   var suits = '♡♢♠♣'
   var counts = '23456789TJQKA'
 
@@ -339,13 +334,16 @@ function newDeck () {
 
   DECK = shuffle(DECK)
 
-  rtm.sendMessage('New Deck Created...beep boop\n', channel || DMChannelId)
+  rtm.sendMessage('New Deck Created...beep boop\n', msg.channel || DMChannelId)
 }
 
-function dealCard () {
+function dealCard (args) {
+  var [_, msg] = args._
+  var channel = msg.channel
+
   if (DECK.length < 1 || !DECK) {
     rtm.sendMessage(`hey uh @jared.fowler? I got an error getting a new card from the DECK... take a :eyes:?`, DMChannelId)
-    return rtm.sendMessage('I had an error drawing a card; the game maybe is over? Try the SHUFFLE command. Here\'s a joke for your time: \r Q: something something meme...\r....\rA: A millenial! \r', channel)
+    return rtm.sendMessage('I had an error drawing a card; the game maybe is over? Try running the @punbot SHUFFLE command. \r Anyway, here\'s a joke for your time: \r Q: something something meme...\r....\rA: A millenial! \r', channel)
   }
   var card = DECK.shift() || 'JOKER!!!'
 
